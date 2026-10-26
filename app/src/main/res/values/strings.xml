@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_description">仅查找并点击明确标注为跳过广告或关闭广告的控件。</string>
+</resources>
