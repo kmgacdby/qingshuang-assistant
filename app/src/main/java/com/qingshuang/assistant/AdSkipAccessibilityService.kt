@@ -36,6 +36,8 @@ class AdSkipAccessibilityService : AccessibilityService() {
             else -> return
         }
 
+        if (!getSharedPreferences("qingshuang_settings", MODE_PRIVATE).getBoolean(MainActivity.KEY_ENABLED, true)) return
+
         val now = SystemClock.elapsedRealtime()
         if (now - lastScanAt < scanIntervalMs || now - lastActionAt < actionCooldownMs) return
         lastScanAt = now
