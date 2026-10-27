@@ -11,57 +11,60 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 class MainActivity : Activity() {
+    private val prefs by lazy { getSharedPreferences("qingshuang_settings", MODE_PRIVATE) }
+    private lateinit var toggleButton: Button
+    private lateinit var status: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
+            gravity = Gravity.TOP
             setPadding(28, 36, 28, 24)
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
         }
-
-        val title = TextView(this).apply {
-            text = "清爽助手"
-            textSize = 30f
-            gravity = Gravity.CENTER
-        }
+        val title = TextView(this).apply { text = "清爽助手"; textSize = 30f; gravity = Gravity.CENTER }
         val subtitle = TextView(this).apply {
-            text = "非 Root · Android 10 及以上"
-            textSize = 15f
-            gravity = Gravity.CENTER
-            setPadding(0, 10, 0, 24)
+            text = "自动跳过辅助 · Android 10 及以上"
+            textSize = 15f; gravity = Gravity.CENTER; setPadding(0, 10, 0, 24)
         }
-        val status = TextView(this).apply {
-            text = "当前版本：0.1.0 预览版\n\n目前仅提供明确广告跳过按钮的辅助点击原型。\n\n广告域名过滤、规则更新和应用白名单尚未实现。"
-            textSize = 17f
-            setLineSpacing(8f, 1f)
-        }
-        val settingsButton = Button(this).apply {
-            text = "开启无障碍辅助"
+        status = TextView(this).apply { textSize = 16f; setLineSpacing(7f, 1f) }
+        toggleButton = Button(this).apply {
             setOnClickListener {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                val enabled = !prefs.getBoolean(KEY_ENABLED, true)
+                prefs.edit().putBoolean(KEY_ENABLED, enabled).apply()
+                refreshUi()
             }
         }
-        val note = TextView(this).apply {
-            text = "启用后，系统可能允许本服务读取屏幕控件文字并点击匹配按钮。请仅在了解其权限范围后开启。"
-            textSize = 13f
-            setPadding(0, 18, 0, 0)
+        val settingsButton = Button(this).apply {
+            text = "打开无障碍设置"
+            setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         }
-
-        root.addView(title, matchWidthWrap())
-        root.addView(subtitle, matchWidthWrap())
-        root.addView(status, matchWidthWrap())
-        root.addView(settingsButton, matchWidthWrap())
-        root.addView(note, matchWidthWrap())
+        val note = TextView(this).apply {
+            text = "优先识别广告页中的跳过/关闭控件；文字节点不可点击时会尝试点击其区域。网络广告过滤尚未实现，后续将作为独立模块评估，可能与其他 VPN 冲突。"
+            textSize = 13f; setPadding(0, 18, 0, 0)
+        }
+        fun add(view: android.view.View) {
+            root.addView(view, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 12 })
+        }
+        add(title); add(subtitle); add(status); add(toggleButton); add(settingsButton); add(note)
         setContentView(root)
+        refreshUi()
     }
 
-    private fun matchWidthWrap() = LinearLayout.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT
-    ).apply { topMargin = 12 }
+    override fun onResume() {
+        super.onResume()
+        if (::status.isInitialized) refreshUi()
+    }
+
+    private fun refreshUi() {
+        val enabled = prefs.getBoolean(KEY_ENABLED, true)
+        status.text = "自动跳过：" + if (enabled) "已开启" else "已暂停" +
+            "\n\n已针对开屏广告倒计时按钮优化。不同应用效果可能不同。"
+        toggleButton.text = if (enabled) "暂停自动跳过" else "恢复自动跳过"
+    }
+
+    companion object { const val KEY_ENABLED = "auto_skip_enabled" }
 }
